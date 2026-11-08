@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HVAC Калькулятор воздуховодов (до 2500 мм)</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        }
+        body {
+            background: #f0f4f8;
+            margin: 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .wrapper {
+            max-width: 1400px;
+            width: 100%;
+            background: white;
+            border-radius: 24px;
+            padding: 30px 30px 40px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+        }
+        .top {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 26px;
+            font-weight: 600;
+            color: #1a3a5a;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 16px;
+            margin-bottom: 24px;
+        }
+        .top img {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: #d0dfec;
+        }
+        .top a {
+            text-decoration: none;
+            color: inherit;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px 40px;
+            background: #f8fafc;
+            padding: 16px 24px;
+            border-radius: 16px;
+            margin-bottom: 30px;
+            border: 1px solid #e2e8f0;
+        }
+        .control-item {
+            display: flex;
+            align-items: baseline;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        .control-item label {
+            font-weight: 500;
+            color: #1e3a5f;
+            font-size: 14px;
+        }
+        .control-item input {
+            width: 100px;
+            padding: 6px 10px;
+            font-size: 14px;
+            border: 1px solid #ccd9e6;
+            border-radius: 8px;
+            background: white;
+            transition: 0.2s;
+        }
+        .control-item input:focus {
+            outline: none;
+            border-color: #2b6c94;
+            box-shadow: 0 0 0 3px rgba(43,108,148,0.15);
+        }
+        .unit {
+            font-size: 13px;
+            color: #3e5e72;
+            margin-left: 2px;
+        }
+        h2 {
+            font-size: 22px;
+            font-weight: 600;
+            color: #0b2b44;
+            margin: 30px 0 16px 0;
+            border-left: 5px solid #2b6c94;
+            padding-left: 14px;
+        }
+        .main-area {
+            display: flex;
+            gap: 24px;
+            align-items: flex-start;
+        }
+        .tables-container {
+            flex: 1;
+            min-width: 0;
+        }
+        .table-wrap {
+            overflow-x: auto;
+            margin-bottom: 20px;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            background: #fafcff;
+        }
+
+        /* ==== Верхняя горизонтальная прокрутка ==== */
+        .scroll-top {
+            overflow-x: auto;
+            overflow-y: hidden;
+            height: 16px;
+            margin-bottom: 4px;
+            border-radius: 8px;
+            background: #eef3f8;
+            border: 1px solid #e2e8f0;
+        }
+        .scroll-top > div {
+            height: 1px;
+        }
+
+        table {
+            border-collapse: collapse;
+            font-size: 14px;
+            width: 100%;
+            min-width: 600px;
+        }
+        th, td {
+            padding: 8px 12px;
+            text-align: center;
+            border: 1px solid #dde4ec;
+            white-space: nowrap;
+            cursor: default;
+        }
+        td:not(.row-header):not(th) {
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        td:not(.row-header):not(th):hover {
+            filter: brightness(0.95);
+        }
+        th {
+            background: #e6eef7;
+            color: #0b2b44;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 2;
+        }
+        th:first-child {
+            position: sticky;
+            left: 0;
+            z-index: 3;
+            box-shadow: 2px 0 0 0 #dde4ec;
+        }
+        .row-header {
+            background: #e6eef7;
+            font-weight: 600;
+            color: #0b2b44;
+            position: sticky;
+            left: 0;
+            z-index: 1;
+            box-shadow: 2px 0 0 0 #dde4ec;
+        }
+        .tdgreen {
+            background-color: #c8f0c8 !important;
+        }
+        .tdred {
+            background-color: #fdd0d0 !important;
+        }
+        .tdneutral {
+            background-color: #fff3cd !important;
+        }
+        .td-invalid {
+            background-color: #eaeaea !important;
+            color: #777;
+        }
+
+        /* ==== Всплывающая подсказка ==== */
+        .cell-tooltip {
+            position: fixed;
+            display: none;
+            z-index: 9999;
+            pointer-events: none;
+            padding: 4px 9px;
+            font-size: 12px;
+            line-height: 1.35;
+            color: #3e5e72;
+            background: #ffffff;
+            border: 1px solid #dde4ec;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(20, 40, 60, 0.10);
+            opacity: 0.96;
+            white-space: nowrap;
+        }
+
+        .info-panel {
+            width: 340px;
+            flex-shrink: 0;
+            background: #f8fafc;
+            border-radius: 16px;
+            padding: 20px 18px;
+            border: 1px solid #e2e8f0;
+            position: sticky;
+            top: 20px;
+            align-self: flex-start;
+            min-height: 200px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+        }
+        .info-panel h3 {
+            margin: 0 0 12px 0;
+            font-size: 16px;
+            color: #0b2b44;
+            border-bottom: 1px solid #dde4ec;
+            padding-bottom: 8px;
+        }
+        .info-panel .info-empty {
+            color: #6f8a9c;
+            font-size: 14px;
+            text-align: center;
+            margin-top: 20px;
+        }
+        .info-panel .main-line {
+            font-size: 18px;
+            font-weight: 600;
+            color: #0b2b44;
+            margin-bottom: 4px;
+        }
+        .info-panel .eq-diam {
+            font-size: 15px;
+            color: #2d4e6b;
+            margin-bottom: 14px;
+            border-bottom: 1px dashed #dde4ec;
+            padding-bottom: 10px;
+        }
+        .info-panel .loss-block {
+            background: #eef3f8;
+            border-radius: 10px;
+            padding: 12px 14px;
+            margin-bottom: 16px;
+            font-size: 14px;
+        }
+        .info-panel .loss-block .loss-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 3px 0;
+        }
+        .info-panel .loss-block .loss-row.total {
+            font-weight: 700;
+            border-top: 2px solid #b0c4d8;
+            margin-top: 4px;
+            padding-top: 6px;
+        }
+        .info-panel .candidate-list {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-top: 6px;
+        }
+        .info-panel .candidate-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 14px;
+            background: #f1f5f9;
+            transition: 0.1s;
+        }
+        .info-panel .candidate-item.current {
+            font-weight: 700;
+            background: #e0eaf3;
+            border: 2px solid #2b6c94;
+            padding: 3px 7px;
+        }
+        .info-panel .candidate-item .size {
+            color: #0b2b44;
+        }
+        .info-panel .candidate-item .speed {
+            font-weight: 500;
+        }
+        .info-panel .candidate-item.in-range .speed {
+            color: #1f7a1f;
+        }
+        .info-panel .candidate-item.below .speed {
+            color: #b8860b;
+        }
+        .info-panel .candidate-item.above .speed {
+            color: #b22222;
+        }
+
+        .footnote {
+            font-size: 13px;
+            color: #4e6b7e;
+            margin-top: 12px;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 16px;
+            clear: both;
+        }
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-top: 10px;
+            font-size: 13px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+        @media (max-width: 900px) {
+            .main-area {
+                flex-direction: column;
+            }
+            .info-panel {
+                width: 100%;
+                position: static;
+                margin-top: 20px;
+            }
+        }
+        @media (max-width: 700px) {
+            .controls { flex-direction: column; gap: 12px; }
+            .control-item input { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+<div class="wrapper">
+    <div class="top">
+        <a href="#">
+            <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%232b6c94' rx='16'/%3E%3Ctext x='50' y='68' font-size='56' text-anchor='middle' fill='white' font-family='sans-serif'%3E🌀%3C/text%3E%3C/svg%3E" alt="logo" />
+            HVAC Calculator
+        </a>
+    </div>
+
+    <div class="controls">
+        <div class="control-item">
+            <label>Расход L:</label>
+            <input type="number" id="flowRate" value="100" min="1" step="10" />
+            <span class="unit">м³/ч</span>
+        </div>
+        <div class="control-item">
+            <label>Мин. скорость:</label>
+            <input type="number" id="minSpeed" value="1" min="0" step="0.1" />
+            <span class="unit">м/с</span>
+        </div>
+        <div class="control-item">
+            <label>Макс. скорость:</label>
+            <input type="number" id="maxSpeed" value="4" min="0" step="0.1" />
+            <span class="unit">м/с</span>
+        </div>
+        <div class="control-item">
+            <label>Длина:</label>
+            <input type="number" id="ductLength" value="10" min="0.1" step="0.5" />
+            <span class="unit">м</span>
+        </div>
+        <div class="control-item">
+            <label>Σξ (местные):</label>
+            <input type="number" id="xiSum" value="1.0" min="0" step="0.1" />
+            <span class="unit">—</span>
+        </div>
+    </div>
+
+    <div class="main-area">
+        <div class="tables-container">
+            <h2>Круглый воздуховод</h2>
+            <div class="table-wrap" id="roundTableWrap">
+                <table id="roundTable">
+                    <thead><tr><th>Ø, мм</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+            <h2>Прямоугольный воздуховод</h2>
+            <div class="scroll-top" id="rectScrollTop"><div></div></div>
+            <div class="table-wrap" id="rectTableWrap">
+                <table id="rectTable">
+                    <thead><tr><th>AxB, мм</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+            <div class="footnote">
+                <div><strong>Расчёт:</strong> V = Q / S, Q — расход (м³/с), S — площадь (м²).</div>
+                <div class="legend">
+                    <span class="legend-item"><span class="legend-color" style="background:#c8f0c8;"></span> Скорость в диапазоне</span>
+                    <span class="legend-item"><span class="legend-color" style="background:#fff3cd;"></span> Ниже минимума</span>
+                    <span class="legend-item"><span class="legend-color" style="background:#fdd0d0;"></span> Выше максимума</span>
+                    <span class="legend-item"><span class="legend-color" style="background:#eaeaea;"></span> Недопустимое соотношение сторон (> 1:4)</span>
+                </div>
+                <div style="margin-top:8px;">
+                    <strong>СП 60.13330.2020, Приложение К, п. К.1:</strong> для прямоугольных воздуховодов отношение большей стороны к меньшей не должно превышать <strong>4:1</strong>.
+                    Ячейки с серым фоном — недопустимые сечения.
+                </div>
+            </div>
+        </div>
+
+        <div class="info-panel" id="infoPanel">
+            <h3>📋 Данные воздуховода</h3>
+            <div id="infoContent">
+                <div class="info-empty">Нажмите на любую ячейку со скоростью, чтобы увидеть детали.</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function() {
+        const flowInput = document.getElementById('flowRate');
+        const minSpeedInput = document.getElementById('minSpeed');
+        const maxSpeedInput = document.getElementById('maxSpeed');
+        const lengthInput = document.getElementById('ductLength');
+        const xiInput = document.getElementById('xiSum');
+        const infoContent = document.getElementById('infoContent');
+
+        const rectScrollTop = document.getElementById('rectScrollTop');
+        const rectTableWrap = document.getElementById('rectTableWrap');
+
+        const roundSizes = [
+            100,125,160,200,250,280,315,355,400,450,500,560,630,710,800,900,
+            1000,1100,1200,1300,1400,1500,1600,1700,1800,1900,2000,2100,2200,2300,2400,2500
+        ];
+        const rectSizes = [
+            50,100,150,200,250,300,350,400,450,500,600,700,800,900,
+            1000,1100,1200,1300,1400,1500,1600,1700,1800,1900,2000,2100,2200,2300,2400,2500
+        ];
+
+        function calcRoundSpeed(flow_m3h, diam_mm) {
+            if (!flow_m3h || flow_m3h <= 0) return 0;
+            const d_m = diam_mm / 1000;
+            const area = Math.PI * (d_m/2) * (d_m/2);
+            if (area <= 0) return 0;
+            return (flow_m3h / 3600) / area;
+        }
+
+        function calcRectSpeed(flow_m3h, a_mm, b_mm) {
+            if (!flow_m3h || flow_m3h <= 0) return 0;
+            const a_m = a_mm / 1000;
+            const b_m = b_mm / 1000;
+            const area = a_m * b_m;
+            if (area <= 0) return 0;
+            return (flow_m3h / 3600) / area;
+        }
+
+        function equivDiameter(a_mm, b_mm) {
+            return Math.round(2 * a_mm * b_mm / (a_mm + b_mm));
+        }
+
+        function calculateLosses(V, D_mm, L, xi) {
+            if (V <= 0 || D_mm <= 0 || L <= 0) return null;
+            const D_m = D_mm / 1000;
+            const rho = 1.2;
+            const mu = 1.81e-5;
+            const epsilon = 0.0001;
+            const Re = rho * V * D_m / mu;
+            let lambda = 0.11 * Math.pow(epsilon / D_m, 0.25);
+            if (Re < 2300) lambda = 64 / Re;
+            const Pdyn = (rho * V * V) / 2;
+            const R = lambda * (1 / D_m) * Pdyn;
+            const dP_tr = R * L;
+            const dP_local = xi * Pdyn;
+            const dP_total = dP_tr + dP_local;
+            return { Re, lambda, Pdyn, R, dP_tr, dP_local, dP_total };
+        }
+
+        function renderRoundTable(flow, minV, maxV) {
+            let html = '<thead><tr><th>Ø, мм</th>';
+            for (let d of roundSizes) html += `<th data-diam="${d}">${d}</th>`;
+            html += '</tr></thead><tbody><tr><td class="row-header">V, м/с</td>';
+            for (let d of roundSizes) {
+                const speed = calcRoundSpeed(flow, d);
+                let cls = '';
+                if (minV !== undefined && maxV !== undefined && minV <= maxV) {
+                    if (speed >= minV && speed <= maxV) cls = 'tdgreen';
+                    else if (speed < minV) cls = 'tdneutral';
+                    else cls = 'tdred';
+                }
+                const display = (speed > 0) ? speed.toFixed(1) : '0.0';
+                html += `<td class="${cls}" data-type="round" data-diam="${d}" data-speed="${speed}">${display}</td>`;
+            }
+            html += '</tr></tbody>';
+            document.querySelector('#roundTable').innerHTML = html;
+        }
+
+        function renderRectTable(flow, minV, maxV) {
+            let html = '<thead><tr><th>AxB, мм</th>';
+            for (let b of rectSizes) html += `<th data-size="${b}">${b}</th>`;
+            html += '</tr></thead><tbody>';
+            for (let a of rectSizes) {
+                html += `<tr><td class="row-header" data-size="${a}">${a}</td>`;
+                for (let b of rectSizes) {
+                    const speed = calcRectSpeed(flow, a, b);
+                    const ratio = Math.max(a, b) / Math.min(a, b);
+                    const valid = ratio <= 4;
+                    let cls = '';
+                    if (!valid) cls = 'td-invalid';
+                    else {
+                        if (minV !== undefined && maxV !== undefined && minV <= maxV) {
+                            if (speed >= minV && speed <= maxV) cls = 'tdgreen';
+                            else if (speed < minV) cls = 'tdneutral';
+                            else cls = 'tdred';
+                        }
+                    }
+                    const display = (speed > 0) ? speed.toFixed(1) : '0.0';
+                    html += `<td class="${cls}" data-type="rect" data-a="${a}" data-b="${b}" data-speed="${speed}" data-valid="${valid}">${display}</td>`;
+                }
+                html += '</tr>';
+            }
+            html += '</tbody>';
+            document.querySelector('#rectTable').innerHTML = html;
+            syncRectScrollWidth();
+        }
+
+        function syncRectScrollWidth() {
+            if (!rectScrollTop || !rectTableWrap) return;
+            const inner = rectScrollTop.firstElementChild;
+            if (!inner) return;
+            const w = rectTableWrap.scrollWidth;
+            inner.style.width = w + 'px';
+            rectScrollTop.scrollLeft = rectTableWrap.scrollLeft;
+        }
+
+        let syncing = false;
+        rectScrollTop.addEventListener('scroll', function() {
+            if (syncing) return;
+            syncing = true;
+            rectTableWrap.scrollLeft = rectScrollTop.scrollLeft;
+            syncing = false;
+        });
+        rectTableWrap.addEventListener('scroll', function() {
+            if (syncing) return;
+            syncing = true;
+            rectScrollTop.scrollLeft = rectTableWrap.scrollLeft;
+            syncing = false;
+        });
+
+        window.addEventListener('resize', syncRectScrollWidth);
+
+        function updateTables() {
+            const flow = parseFloat(flowInput.value);
+            if (isNaN(flow) || flow <= 0) {
+                renderRoundTable(0, 0, 0);
+                renderRectTable(0, 0, 0);
+                return;
+            }
+            const minV = parseFloat(minSpeedInput.value);
+            const maxV = parseFloat(maxSpeedInput.value);
+            const minOK = !isNaN(minV) ? minV : undefined;
+            const maxOK = !isNaN(maxV) ? maxV : undefined;
+            let mn = minOK, mx = maxOK;
+            if (mn !== undefined && mx !== undefined && mn > mx) { mn = undefined; mx = undefined; }
+            renderRoundTable(flow, mn, mx);
+            renderRectTable(flow, mn, mx);
+        }
+
+        // ==== НОВАЯ ЛОГИКА ДЛЯ ПРЯМОУГОЛЬНЫХ КАНДИДАТОВ ====
+        function getRectCandidates(flow, currentA, currentB, currentSpeed) {
+            // currentA - длинная сторона, currentB - короткая
+            const candidates = [];
+            // Генерируем 5 позиций согласно формуле
+            const base = [
+                { A: currentA - 50, B: currentB + 50, isCurrent: false },
+                { A: currentA - 50, B: currentB, isCurrent: false },
+                { A: currentA, B: currentB, isCurrent: true },
+                { A: currentA + 50, B: currentB, isCurrent: false },
+                { A: currentA + 50, B: currentB + 50, isCurrent: false }
+            ];
+
+            const seen = new Set();
+
+            for (let item of base) {
+                let x = item.A;
+                let y = item.B;
+                // Нормализуем: большая сторона первой
+                let a = Math.max(x, y);
+                let b = Math.min(x, y);
+
+                // Проверка допустимости
+                if (a > 2500 || b < 50) continue;
+                if (a / b > 4) continue;
+
+                // Убираем дубликаты
+                const key = a + 'x' + b;
+                if (seen.has(key)) continue;
+
+                // Если это не текущая позиция, но совпадает с текущей — пропускаем
+                if (!item.isCurrent && a === currentA && b === currentB) continue;
+
+                seen.add(key);
+                const speed = calcRectSpeed(flow, a, b);
+                if (speed === 0) continue;
+
+                candidates.push({ a, b, speed });
+            }
+
+            return candidates;
+        }
+
+        function getRoundNeighbors(flow, currentDiam) {
+            const idx = roundSizes.indexOf(currentDiam);
+            if (idx === -1) return [{ diam: currentDiam, speed: calcRoundSpeed(flow, currentDiam) }];
+            const result = [];
+            if (idx > 0) result.push({ diam: roundSizes[idx-1], speed: calcRoundSpeed(flow, roundSizes[idx-1]) });
+            result.push({ diam: roundSizes[idx], speed: calcRoundSpeed(flow, roundSizes[idx]) });
+            if (idx < roundSizes.length - 1) result.push({ diam: roundSizes[idx+1], speed: calcRoundSpeed(flow, roundSizes[idx+1]) });
+            return result;
+        }
+
+        function handleCellClick(e) {
+            const td = e.target.closest('td');
+            if (!td) return;
+            if (td.tagName !== 'TD') return;
+            if (td.classList.contains('row-header')) return;
+            const type = td.dataset.type;
+            if (!type) return;
+
+            const flow = parseFloat(flowInput.value);
+            if (isNaN(flow) || flow <= 0) {
+                infoContent.innerHTML = `<div class="info-empty">Укажите корректный расход воздуха.</div>`;
+                return;
+            }
+
+            const speed = parseFloat(td.dataset.speed);
+            if (isNaN(speed)) speed = 0;
+            const speedDisplay = speed.toFixed(1);
+            const minV = parseFloat(minSpeedInput.value);
+            const maxV = parseFloat(maxSpeedInput.value);
+            const hasRange = !isNaN(minV) && !isNaN(maxV) && minV <= maxV;
+            const L = parseFloat(lengthInput.value) || 0;
+            const xi = parseFloat(xiInput.value) || 0;
+
+            let html = '';
+
+            if (type === 'round') {
+                const diam = parseInt(td.dataset.diam);
+                html += `<div class="main-line">⌀${diam} мм, v=${speedDisplay} м/с</div>`;
+                const D_eq = diam;
+                html += `<div class="eq-diam">экв. ⌀${D_eq} мм</div>`;
+
+                if (L > 0 && speed > 0) {
+                    const losses = calculateLosses(speed, D_eq, L, xi);
+                    if (losses) {
+                        html += `<div class="loss-block">
+                                    <div class="loss-row"><span>Удельные потери (R)</span><span>${losses.R.toFixed(3)} Па/м</span></div>
+                                    <div class="loss-row"><span>Потери по длине (ΔP_тр)</span><span>${losses.dP_tr.toFixed(2)} Па</span></div>
+                                    <div class="loss-row"><span>Местные потери (Z)</span><span>${losses.dP_local.toFixed(2)} Па</span></div>
+                                    <div class="loss-row total"><span>ОБЩИЕ ПОТЕРИ</span><span>${losses.dP_total.toFixed(2)} Па</span></div>
+                                </div>`;
+                    }
+                }
+
+                const neighbors = getRoundNeighbors(flow, diam);
+                html += `<div class="candidate-list">`;
+                for (let item of neighbors) {
+                    const isCurrent = (item.diam === diam);
+                    const s = item.speed;
+                    const sDisplay = s.toFixed(1);
+                    let rangeClass = '';
+                    if (hasRange) {
+                        if (s >= minV && s <= maxV) rangeClass = 'in-range';
+                        else if (s < minV) rangeClass = 'below';
+                        else rangeClass = 'above';
+                    }
+                    const currentClass = isCurrent ? 'current' : '';
+                    html += `<div class="candidate-item ${currentClass} ${rangeClass}">
+                                <span class="size">⌀${item.diam} мм</span>
+                                <span class="speed">${sDisplay} м/с</span>
+                             </div>`;
+                }
+                html += `</div>`;
+
+            } else if (type === 'rect') {
+                let a = parseInt(td.dataset.a);
+                let b = parseInt(td.dataset.b);
+                const longSide = Math.max(a, b);
+                const shortSide = Math.min(a, b);
+                a = longSide;
+                b = shortSide;
+                html += `<div class="main-line">${a}×${b} мм, v=${speedDisplay} м/с</div>`;
+                const D_eq = equivDiameter(a, b);
+                html += `<div class="eq-diam">экв. ⌀${D_eq} мм</div>`;
+
+                if (L > 0 && speed > 0) {
+                    const losses = calculateLosses(speed, D_eq, L, xi);
+                    if (losses) {
+                        html += `<div class="loss-block">
+                                    <div class="loss-row"><span>Удельные потери (R)</span><span>${losses.R.toFixed(3)} Па/м</span></div>
+                                    <div class="loss-row"><span>Потери по длине (ΔP_тр)</span><span>${losses.dP_tr.toFixed(2)} Па</span></div>
+                                    <div class="loss-row"><span>Местные потери (Z)</span><span>${losses.dP_local.toFixed(2)} Па</span></div>
+                                    <div class="loss-row total"><span>ОБЩИЕ ПОТЕРИ</span><span>${losses.dP_total.toFixed(2)} Па</span></div>
+                                </div>`;
+                    }
+                }
+
+                const candidates = getRectCandidates(flow, a, b, speed);
+                if (candidates.length === 0) {
+                    html += `<div style="color:#6f8a9c; font-size:13px;">Нет других сечений в диапазоне ±0.5 м/с</div>`;
+                } else {
+                    html += `<div class="candidate-list">`;
+                    for (let item of candidates) {
+                        const isCurrent = (item.a === a && item.b === b);
+                        const s = item.speed;
+                        const sDisplay = s.toFixed(1);
+                        let rangeClass = '';
+                        if (hasRange) {
+                            if (s >= minV && s <= maxV) rangeClass = 'in-range';
+                            else if (s < minV) rangeClass = 'below';
+                            else rangeClass = 'above';
+                        }
+                        const currentClass = isCurrent ? 'current' : '';
+                        html += `<div class="candidate-item ${currentClass} ${rangeClass}">
+                                    <span class="size">${item.a}×${item.b} мм</span>
+                                    <span class="speed">${sDisplay} м/с</span>
+                                 </div>`;
+                    }
+                    html += `</div>`;
+                }
+            }
+
+            infoContent.innerHTML = html;
+        }
+
+        document.addEventListener('click', function(e) {
+            const td = e.target.closest('td');
+            if (!td) return;
+            const table = td.closest('table');
+            if (!table) return;
+            if (table.id !== 'roundTable' && table.id !== 'rectTable') return;
+            handleCellClick(e);
+        });
+
+        function clearInfo() {
+            infoContent.innerHTML = `<div class="info-empty">Нажмите на любую ячейку со скоростью, чтобы увидеть детали.</div>`;
+        }
+        flowInput.addEventListener('input', clearInfo);
+        minSpeedInput.addEventListener('input', clearInfo);
+        maxSpeedInput.addEventListener('input', clearInfo);
+        lengthInput.addEventListener('input', clearInfo);
+        xiInput.addEventListener('input', clearInfo);
+
+        flowInput.addEventListener('input', updateTables);
+        minSpeedInput.addEventListener('input', updateTables);
+        maxSpeedInput.addEventListener('input', updateTables);
+
+        // ==== Всплывающая подсказка при наведении ====
+        const tooltip = document.createElement('div');
+        tooltip.className = 'cell-tooltip';
+        document.body.appendChild(tooltip);
+
+        let tooltipVisible = false;
+        let currentTooltipCell = null;
+
+        function positionTooltip(x, y) {
+            const offset = 14;
+            const rect = tooltip.getBoundingClientRect();
+            let left = x + offset;
+            let top = y + offset;
+            if (left + rect.width > window.innerWidth - 8) {
+                left = x - rect.width - offset;
+            }
+            if (top + rect.height > window.innerHeight - 8) {
+                top = y - rect.height - offset;
+            }
+            if (left < 4) left = 4;
+            if (top < 4) top = 4;
+            tooltip.style.left = left + 'px';
+            tooltip.style.top = top + 'px';
+        }
+
+        function hideTooltip() {
+            if (tooltipVisible) {
+                tooltip.style.display = 'none';
+                tooltipVisible = false;
+                currentTooltipCell = null;
+            }
+        }
+
+        document.addEventListener('mousemove', function(e) {
+            const td = e.target.closest('td');
+            if (!td || !td.dataset.type) {
+                hideTooltip();
+                return;
+            }
+
+            const type = td.dataset.type;
+            let text = '';
+            if (type === 'round') {
+                text = '⌀' + td.dataset.diam + ' мм';
+            } else if (type === 'rect') {
+                const a = parseInt(td.dataset.a);
+                const b = parseInt(td.dataset.b);
+                text = Math.max(a, b) + '×' + Math.min(a, b) + ' мм';
+            } else {
+                hideTooltip();
+                return;
+            }
+
+            if (currentTooltipCell !== td) {
+                currentTooltipCell = td;
+                tooltip.textContent = text;
+            }
+
+            if (!tooltipVisible) {
+                tooltip.style.display = 'block';
+                tooltipVisible = true;
+            }
+            positionTooltip(e.clientX, e.clientY);
+        });
+
+        document.addEventListener('mouseleave', hideTooltip);
+        window.addEventListener('scroll', hideTooltip, true);
+
+        updateTables();
+        window.addEventListener('load', syncRectScrollWidth);
+    })();
+</script>
+</body>
+</html>
